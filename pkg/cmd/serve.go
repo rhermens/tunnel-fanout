@@ -3,8 +3,8 @@ package cmd
 import (
 	"sync"
 
+	"github.com/rhermens/tunnel-fanout/pkg/proxy"
 	"github.com/rhermens/tunnel-fanout/pkg/registry"
-	"github.com/rhermens/tunnel-fanout/pkg/server"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ func NewServeCmd() *cobra.Command {
 			var wg sync.WaitGroup
 
 			wg.Add(1)
-			go server.Listen(":9000")
+			go proxy.Listen(":9000")
 
 			wg.Add(1)
 			go registry.Listen(":8000")

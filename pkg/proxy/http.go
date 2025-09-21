@@ -1,4 +1,4 @@
-package server
+package proxy
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ func Listen(addr string) {
 		w.Write([]byte("OK"))
 	})
 
-	slog.Info("Starting server", "addr", addr)
+	slog.Info("Starting http server", "addr", addr)
 	err := http.ListenAndServe(addr, mux)
 
 	if err != nil {
