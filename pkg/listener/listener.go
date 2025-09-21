@@ -12,23 +12,21 @@ import (
 )
 
 type TunnelClient struct {
-	LocalTargetPort int
-	RegistryClient  *ssh.Client
-	Channel         ssh.Channel
-	Requests        <-chan *ssh.Request
+	Config         *TunnelClientConfig
+	RegistryClient *ssh.Client
+	Channel        ssh.Channel
+	Requests       <-chan *ssh.Request
+}
+
+func NewTunnelClient(config *TunnelClientConfig) *TunnelClient {
+	return &TunnelClient{
+		Config: config,
+	}
 }
 
 func (tc *TunnelClient) openRegistryConnection() {
 	var err error
-	clientConfig := &ssh.ClientConfig{
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		User:            "Ayyy",
-		Auth: []ssh.AuthMethod{
-			ssh.Password("Ayy"),
-		},
-	}
-
-	tc.RegistryClient, err = ssh.Dial("tcp", ":8000", clientConfig)
+	tc.RegistryClient, err = ssh.Dial("tcp", tc.Config.Registry, tc.Config.SshConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +35,8 @@ func (tc *TunnelClient) openRegistryConnection() {
 	if err != nil {
 		panic(err)
 	}
-	slog.Info("Opened channel to registry")
+
+	slog.Info("Opened channel to registry", "remote", tc.Config.Registry)
 }
 
 func (tc *TunnelClient) Close() {
@@ -45,6 +44,7 @@ func (tc *TunnelClient) Close() {
 }
 
 func (tc *TunnelClient) ForwardRequests() {
+	slog.Info("Forwarding requests", "port", tc.Config.TargetPort, "proto", tc.Config.TargetProto)
 	cl := http.Client{}
 	defer tc.Close()
 
@@ -56,7 +56,7 @@ func (tc *TunnelClient) ForwardRequests() {
 			continue
 		}
 
-		u, err := url.Parse(fmt.Sprintf("http://localhost:%d%s", tc.LocalTargetPort, hReq.URL.Path))
+		u, err := url.Parse(fmt.Sprintf("%s://localhost:%d%s", tc.Config.TargetProto, tc.Config.TargetPort, hReq.URL.Path))
 		hReq.URL = u
 		hReq.RequestURI = ""
 
