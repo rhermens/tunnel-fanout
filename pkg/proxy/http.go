@@ -18,7 +18,7 @@ func Listen(config *HttpServerConfig) {
 		r.Write(&buffer)
 
 		for _, tunnelClient := range registry.Upstreams {
-			slog.Info("Forwarding request to listener", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr(), "channels", len(tunnelClient.OpenChannels))
+			slog.Info("Forwarding request to upstream", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr(), "channels", len(tunnelClient.OpenChannels))
 
 			for i, openConn := range tunnelClient.OpenChannels {
 				slog.Info("Writing to channel", "channel", i)
