@@ -27,12 +27,13 @@ func (tc *TunnelClient) openRegistryConnection() {
 			ssh.Password("Ayy"),
 		},
 	}
+
 	tc.RegistryClient, err = ssh.Dial("tcp", ":8000", clientConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel("direct-tcpip", []byte{})
+	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel("upstream", []byte{})
 	if err != nil {
 		panic(err)
 	}
@@ -43,14 +44,11 @@ func (tc *TunnelClient) Close() {
 	tc.RegistryClient.Close()
 }
 
-func (tc *TunnelClient) Listen() {
-	tc.openRegistryConnection()
+func (tc *TunnelClient) ForwardRequests() {
+	cl := http.Client{}
 	defer tc.Close()
 
-	cl := http.Client{}
-
 	for r := range tc.Requests {
-		slog.Info("Request", "type", r.Type, "want-reply", r.WantReply)
 		reader := bytes.NewReader(r.Payload)
 		hReq, err := http.ReadRequest(bufio.NewReader(reader))
 		if err != nil {
@@ -59,17 +57,22 @@ func (tc *TunnelClient) Listen() {
 		}
 
 		u, err := url.Parse(fmt.Sprintf("http://localhost:%d%s", tc.LocalTargetPort, hReq.URL.Path))
-
 		hReq.URL = u
 		hReq.RequestURI = ""
 
-		slog.Info("Forwarding request", "method", hReq.Method, "url", hReq.URL.String(), "host", hReq.Host)
 		resp, err := cl.Do(hReq)
 		if err != nil {
 			slog.Error("Failed to do request", "error", err)
 			continue
 		}
 
-		slog.Info("Forwarded req", "status", resp.StatusCode)
+		slog.Info("Request forwarded", "path", hReq.URL.Path, "status", resp.StatusCode)
 	}
+}
+
+func (tc *TunnelClient) Listen() {
+	tc.openRegistryConnection()
+	defer tc.Close()
+
+	tc.ForwardRequests()
 }

@@ -21,7 +21,7 @@ func Listen(addr string) {
 
 			for i, openConn := range tunnelClient.OpenChannels {
 				slog.Info("Writing to channel", "channel", i)
-				openConn.Channel.SendRequest("tcpip-forward", false, buffer.Bytes())
+				openConn.Channel.SendRequest("forward", false, buffer.Bytes())
 			}
 		}
 

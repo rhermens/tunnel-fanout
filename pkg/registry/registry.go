@@ -4,16 +4,18 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
 
-var TunnelClients []*TunnelClient
+var TunnelClients []*TunnelUpstream
 
-func Listen(addr string) {
+type RegistryConfig struct {
+	SshConfig *ssh.ServerConfig
+}
+
+func newServerConfig() *RegistryConfig {
 	// authorizedKeys := []string{}
-
 	serverConfig := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return nil, nil
@@ -34,6 +36,11 @@ func Listen(addr string) {
 		panic(err)
 	}
 	serverConfig.AddHostKey(pk)
+	return &RegistryConfig{SshConfig: serverConfig}
+}
+
+func Listen(addr string) {
+	registryConfig := newServerConfig()
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -43,38 +50,21 @@ func Listen(addr string) {
 	slog.Info("SSH server listening on", "addr", addr)
 	defer listener.Close()
 
-	var wg sync.WaitGroup
-	defer wg.Done()
 	for {
 		var err error
-		var tunnelClient TunnelClient
 		nConn, err := listener.Accept()
 		if err != nil {
 			slog.Error("Failed to accept connection", "error", err)
-			panic(err)
-		}
-
-		tunnelClient.SSHConn, tunnelClient.ChannelRequests, tunnelClient.Reqs, err = ssh.NewServerConn(nConn, serverConfig)
-		if err != nil {
-			slog.Error("Failed to handshake", "error", err)
 			continue
 		}
-		wg.Go(func() {
-			ssh.DiscardRequests(tunnelClient.Reqs)
-		})
 
-		slog.Info("Accepted connection", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr())
-		TunnelClients = append(TunnelClients, &tunnelClient)
-
-		for channel := range tunnelClient.ChannelRequests {
-			c, reqs, err := channel.Accept()
-			if err != nil {
-				slog.Error("Could not accept channel", "error", err)
-				continue
-			}
-
-			slog.Info("Accepted channel req", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr())
-			tunnelClient.OpenChannels = append(tunnelClient.OpenChannels, OpenChannel{Channel: c, Requests: reqs})
+		tu, err := NewUpstreamFromTCP(nConn, registryConfig)
+		if err != nil {
+			slog.Error("Failed to create tunnel upstream", "error", err)
+			continue
 		}
+
+		slog.Info("Accepted connection", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr())
+		TunnelClients = append(TunnelClients, tu)
 	}
 }
