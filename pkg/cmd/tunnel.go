@@ -3,6 +3,7 @@ package cmd
 import (
 	"log/slog"
 	"os"
+	"path"
 
 	"github.com/rhermens/tunnel-fanout/pkg/client"
 	"github.com/spf13/cobra"
@@ -23,13 +24,15 @@ func NewTunnelCmd() *cobra.Command {
 
 	viper.SetConfigName("tunnel")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(os.Getenv("HOME") + "/.config/tunnel/")
+	viper.AddConfigPath(path.Join(os.Getenv("HOME"), ".config/tunnel"))
 	viper.AddConfigPath(".")
 
 	tunnelCmd.Flags().IntP("port", "p", 8080, "Port to forward to")
 	tunnelCmd.Flags().StringP("registry", "r", ":7891", "Registry address")
+	tunnelCmd.Flags().StringP("public-key-path", "k", path.Join(os.Getenv("HOME"), ".ssh/id_ed25519"), "Registry address")
 	viper.BindPFlag("port", tunnelCmd.Flags().Lookup("port"))
 	viper.BindPFlag("registry", tunnelCmd.Flags().Lookup("registry"))
+	viper.BindPFlag("public_key_path", tunnelCmd.Flags().Lookup("public-key-path"))
 
 	err := viper.ReadInConfig()
 	if err != nil {

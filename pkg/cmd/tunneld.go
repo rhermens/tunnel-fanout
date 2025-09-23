@@ -16,7 +16,6 @@ func NewTunneldCmd() *cobra.Command {
 		Short: "Start the tunnel daemon",
 		Run: func(cmd *cobra.Command, args []string) {
 			httpConf := viper.Sub("http")
-			registryConf := viper.Sub("registry")
 
 			var wg sync.WaitGroup
 
@@ -24,17 +23,13 @@ func NewTunneldCmd() *cobra.Command {
 			go proxy.Listen(proxy.NewHttpServerConfig(httpConf))
 
 			wg.Add(1)
-			go registry.Listen(registry.NewRegistryConfig(registryConf))
+			go registry.Listen(registry.NewRegistryConfig())
 
 			wg.Wait()
 		},
 	}
 
-	serveCmd.Flags().String("http-host", ":8000", "HTTP Server host")
-	serveCmd.Flags().String("registry-host", ":7891", "Tunnel Registry host")
-
 	tunneldConfig()
-
 	return serveCmd
 }
 

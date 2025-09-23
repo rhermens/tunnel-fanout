@@ -24,7 +24,7 @@ type TunnelUpstream struct {
 func NewUpstreamFromTCP(conn net.Conn, rConfig *RegistryConfig) (*TunnelUpstream, error) {
 	var err error
 	tu := &TunnelUpstream{}
-	tu.SSHConn, tu.ChannelRequests, tu.Reqs, err = ssh.NewServerConn(conn, rConfig.SshConfig)
+	tu.SSHConn, tu.ChannelRequests, tu.Reqs, err = ssh.NewServerConn(conn, rConfig.Ssh.SshConfig)
 	if err != nil {
 		slog.Error("Failed to handshake", "error", err)
 		return nil, err

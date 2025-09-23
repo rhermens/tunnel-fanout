@@ -20,11 +20,20 @@ func NewTunnelClientConfig() *TunnelClientConfig {
 		panic(err)
 	}
 
+	pk, err := os.ReadFile(viper.GetString("private_key_path"))
+	if err != nil {
+		panic(err)
+	}
+	signer, err := ssh.ParsePrivateKey(pk)
+	if err != nil {
+		panic(err)
+	}
+
 	clientConfig := &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            hostName,
 		Auth: []ssh.AuthMethod{
-			ssh.Password("Ayy"),
+			ssh.PublicKeys(signer),
 		},
 	}
 

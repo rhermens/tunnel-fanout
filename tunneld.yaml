@@ -5,3 +5,8 @@ http:
 registry:
   host: 0.0.0.0
   port: 7891
+  ssh:
+    host_key_path: .ssh/id_ed25519
+    authorized_keys:
+      # Example public key:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEz6uCbKyV+dBXEM9nGmeEIpcvWJIitFe/Gq7yH5ucR0
