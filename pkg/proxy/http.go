@@ -9,7 +9,7 @@ import (
 	"github.com/rhermens/tunnel-fanout/pkg/registry"
 )
 
-func Listen(config *HttpServerConfig) {
+func Listen(config *HttpServerConfig) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/{path...}", func(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +25,7 @@ func Listen(config *HttpServerConfig) {
 				reply, err := openConn.Channel.SendRequest("forward", true, buffer.Bytes())
 				if err != nil {
 					slog.Error("Failed to send request", "error", err)
+					registry.RemoveUpstream(tunnelClient, err)
 					continue
 				}
 
@@ -36,9 +37,5 @@ func Listen(config *HttpServerConfig) {
 	})
 
 	slog.Info("Starting http server", "host", config.Host, "port", config.Port)
-	err := http.ListenAndServe(net.JoinHostPort(config.Host, config.Port), mux)
-
-	if err != nil {
-		slog.Error("Server failed", "error", err)
-	}
+	return http.ListenAndServe(net.JoinHostPort(config.Host, config.Port), mux)
 }

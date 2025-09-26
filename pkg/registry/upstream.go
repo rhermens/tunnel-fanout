@@ -40,6 +40,14 @@ func NewUpstreamFromTCP(conn net.Conn, rConfig *RegistryConfig) (*TunnelUpstream
 	return tu, nil
 }
 
+func (tu *TunnelUpstream) Wait() error {
+	return tu.SSHConn.Wait()
+}
+
+func (tu *TunnelUpstream) RemoteAddr() net.Addr {
+	return tu.SSHConn.RemoteAddr()
+}
+
 func (tu *TunnelUpstream) acceptChannels() {
 	for channel := range tu.ChannelRequests {
 		var err error

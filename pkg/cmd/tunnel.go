@@ -17,7 +17,12 @@ func NewTunnelCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			config := client.NewTunnelClientConfig()
 			l := client.NewTunnelClient(config)
-			l.Listen()
+			err := l.Listen()
+			if err != nil {
+				slog.Error("Failed to listen to tunnel", "error", err)
+				os.Exit(1)
+			}
+
 			defer l.Close()
 		},
 	}

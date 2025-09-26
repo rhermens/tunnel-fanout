@@ -5,13 +5,13 @@ import (
 	"net"
 )
 
-var Upstreams []*TunnelUpstream
+var Upstreams map[string]*TunnelUpstream = make(map[string]*TunnelUpstream)
 
-func Listen(config *RegistryConfig) {
+func Listen(config *RegistryConfig) error {
 	listener, err := net.Listen("tcp", net.JoinHostPort(config.Host, config.Port))
 	if err != nil {
 		slog.Error("Failed to start SSH server", "error", err)
-		panic(err)
+		return err
 	}
 	slog.Info("SSH server listening on", "host", config.Host, "port", config.Port)
 	defer listener.Close()
@@ -31,6 +31,17 @@ func Listen(config *RegistryConfig) {
 		}
 
 		slog.Info("Accepted connection", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr())
-		Upstreams = append(Upstreams, tu)
+		Upstreams[tu.RemoteAddr().String()] = tu
+
+		tu.wg.Go(func() {
+			err := tu.Wait()
+			RemoveUpstream(tu, err)
+		})
 	}
+}
+
+func RemoveUpstream(tu *TunnelUpstream, reason error) {
+	tu.Close()
+	slog.Info("Connection closed", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr(), "reason", reason)
+	delete(Upstreams, tu.RemoteAddr().String())
 }

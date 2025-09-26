@@ -24,19 +24,20 @@ func NewTunnelClient(config *TunnelClientConfig) *TunnelClient {
 	}
 }
 
-func (tc *TunnelClient) openRegistryConnection() {
+func (tc *TunnelClient) openRegistryConnection() error {
 	var err error
 	tc.RegistryClient, err = ssh.Dial("tcp", tc.Config.Registry, tc.Config.SshConfig)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel("upstream", []byte{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	slog.Info("Opened channel to registry", "remote", tc.Config.Registry)
+	return nil
 }
 
 func (tc *TunnelClient) Close() {
@@ -80,9 +81,14 @@ func (tc *TunnelClient) ForwardRequests() {
 	}
 }
 
-func (tc *TunnelClient) Listen() {
-	tc.openRegistryConnection()
+func (tc *TunnelClient) Listen() error {
+	err := tc.openRegistryConnection()
+	if err != nil {
+		slog.Error("Failed to open registry connection", "error", err)
+		return err
+	}
 	defer tc.Close()
 
 	tc.ForwardRequests()
+	return nil
 }

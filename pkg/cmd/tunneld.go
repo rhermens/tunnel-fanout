@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 	"sync"
 
 	"github.com/rhermens/tunnel-fanout/pkg/proxy"
@@ -16,14 +17,22 @@ func NewTunneldCmd() *cobra.Command {
 		Short: "Start the tunnel daemon",
 		Run: func(cmd *cobra.Command, args []string) {
 			httpConf := viper.Sub("http")
-
 			var wg sync.WaitGroup
 
-			wg.Add(1)
-			go proxy.Listen(proxy.NewHttpServerConfig(httpConf))
-
-			wg.Add(1)
-			go registry.Listen(registry.NewRegistryConfig())
+			wg.Go(func() {
+				err := proxy.Listen(proxy.NewHttpServerConfig(httpConf))
+				if err != nil {
+					slog.Error("Failed to start http server", "error", err)
+					os.Exit(1)
+				}
+			})
+			wg.Go(func() {
+				err := registry.Listen(registry.NewRegistryConfig())
+				if err != nil {
+					slog.Error("Failed to start registry server", "error", err)
+					os.Exit(1)
+				}
+			})
 
 			wg.Wait()
 		},
