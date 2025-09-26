@@ -65,8 +65,18 @@ func (tc *TunnelClient) ForwardRequests() {
 			slog.Error("Failed to do request", "error", err)
 			continue
 		}
-
+		defer resp.Body.Close()
 		slog.Info("Request forwarded", "path", hReq.URL.Path, "status", resp.StatusCode)
+
+		if r.WantReply {
+			var buff bytes.Buffer
+			resp.Write(&buff)
+
+			r.Reply(true, nil)
+			tc.Channel.SendRequest("response", false, buff.Bytes())
+
+			slog.Info("Response written back to proxy", "status", resp.StatusCode)
+		}
 	}
 }
 

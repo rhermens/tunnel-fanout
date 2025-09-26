@@ -22,7 +22,13 @@ func Listen(config *HttpServerConfig) {
 
 			for i, openConn := range tunnelClient.OpenChannels {
 				slog.Info("Writing to channel", "channel", i)
-				openConn.Channel.SendRequest("forward", false, buffer.Bytes())
+				reply, err := openConn.Channel.SendRequest("forward", true, buffer.Bytes())
+				if err != nil {
+					slog.Error("Failed to send request", "error", err)
+					continue
+				}
+
+				slog.Info("Request sent", "reply", reply)
 			}
 		}
 

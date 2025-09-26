@@ -51,7 +51,9 @@ func (tu *TunnelUpstream) acceptChannels() {
 		}
 
 		tu.wg.Go(func() {
-			ssh.DiscardRequests(openChannel.Requests)
+			for req := range openChannel.Requests {
+				slog.Info("Received channel request", "type", req.Type, "want_reply", req.WantReply)
+			}
 		})
 
 		slog.Info("Accepted channel req", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr())
