@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/rhermens/tunnel-fanout/pkg/client"
 	"github.com/spf13/cobra"
@@ -30,6 +31,9 @@ func NewTunnelCmd() *cobra.Command {
 	viper.SetConfigName("tunnel")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(path.Join(os.Getenv("HOME"), ".config/tunnel"))
+	viper.SetEnvPrefix("tunnel")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AddConfigPath(".")
 
 	tunnelCmd.Flags().IntP("port", "p", 8080, "Port to forward to")

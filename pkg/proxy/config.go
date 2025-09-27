@@ -7,10 +7,10 @@ type HttpServerConfig struct {
 	Port string
 }
 
-func NewHttpServerConfig(v *viper.Viper) *HttpServerConfig {
+func NewHttpServerConfig() *HttpServerConfig {
 	return &HttpServerConfig{
-		Host: v.GetString("host"),
-		Port: v.GetString("port"),
+		Host: viper.GetString("http.host"),
+		Port: viper.GetString("http.port"),
 	}
 }
 
