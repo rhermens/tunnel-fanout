@@ -37,7 +37,7 @@ func NewRegistryConfig() *RegistryConfig {
 }
 
 func newSshConfig() *SshConfig {
-	authorizedKeys := parseAuthorizedKeys(viper.GetStringSlice("registry.ssh.authorized_keys"))
+	authorizedKeys := parseAuthorizedKeys()
 	config := &SshConfig{
 		AuthorizedKeys: authorizedKeys,
 		HostKeyPath:    viper.GetString("registry.ssh.host_key_path"),
@@ -71,7 +71,9 @@ func newSshConfig() *SshConfig {
 	return config
 }
 
-func parseAuthorizedKeys(authorizedKeys []string) map[string]bool {
+func parseAuthorizedKeys() map[string]bool {
+	var authorizedKeys []string
+	viper.UnmarshalKey("registry.ssh.authorized_keys", &authorizedKeys)
 	authorizedKeysMap := map[string]bool{}
 
 	for _, key := range authorizedKeys {
@@ -85,6 +87,7 @@ func parseAuthorizedKeys(authorizedKeys []string) map[string]bool {
 			continue
 		}
 
+		slog.Debug("Parsed authorized key", "key", key)
 		authorizedKeysMap[string(parsedKey.Marshal())] = true
 	}
 

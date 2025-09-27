@@ -56,6 +56,7 @@ func (tc *TunnelClient) ForwardRequests() {
 			slog.Error("Failed to read request", "error", err)
 			continue
 		}
+		r.Reply(true, nil)
 
 		u, err := url.Parse(fmt.Sprintf("%s://localhost:%d%s", tc.Config.TargetProto, tc.Config.TargetPort, hReq.URL.Path))
 		hReq.URL = u
@@ -73,7 +74,6 @@ func (tc *TunnelClient) ForwardRequests() {
 			var buff bytes.Buffer
 			resp.Write(&buff)
 
-			r.Reply(true, nil)
 			tc.Channel.SendRequest("response", false, buff.Bytes())
 
 			slog.Info("Response written back to proxy", "status", resp.StatusCode)
