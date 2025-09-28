@@ -42,18 +42,7 @@ func newSshConfig() *SshConfig {
 		AuthorizedKeys: authorizedKeys,
 		HostKeyPath:    viper.GetString("registry.ssh.host_key_path"),
 		SshConfig: &ssh.ServerConfig{
-			PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-				if authorizedKeys[string(key.Marshal())] {
-					return &ssh.Permissions{
-						Extensions: map[string]string{
-							"pubkey-fp": ssh.FingerprintSHA256(key),
-						},
-					}, nil
-				}
-
-				slog.Warn("Unauthorized public key", "user", conn.User(), "remote", conn.RemoteAddr(), "key", key.Type())
-				return nil, fmt.Errorf("unauthorized public key for %q", conn.User())
-			},
+			PublicKeyCallback: newPublicKeyCallback(authorizedKeys),
 		},
 	}
 
@@ -69,6 +58,21 @@ func newSshConfig() *SshConfig {
 	}
 	config.SshConfig.AddHostKey(pk)
 	return config
+}
+
+func newPublicKeyCallback(authorizedKeys map[string]bool) func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		if authorizedKeys[string(key.Marshal())] {
+			return &ssh.Permissions{
+				Extensions: map[string]string{
+					"pubkey-fp": ssh.FingerprintSHA256(key),
+				},
+			}, nil
+		}
+
+		slog.Warn("Unauthorized public key", "user", conn.User(), "remote", conn.RemoteAddr(), "key", key.Type())
+		return nil, fmt.Errorf("unauthorized public key for %q", conn.User())
+	}
 }
 
 func parseAuthorizedKeys() map[string]bool {
