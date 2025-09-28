@@ -6,6 +6,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -20,10 +22,10 @@ jobs:
         with:
           file: ./build/tunneld/Dockerfile
           push: true
-          tags: rhermens/tunneld:latest
+          tags: ghcr.io/rhermens/tunneld:latest
       - name: Build and push client
         uses: docker/build-push-action@v6
         with:
           file: ./build/tunnel/Dockerfile
           push: true
-          tags: rhermens/tunnel:latest
+          tags: ghcr.io/rhermens/tunnel:latest
