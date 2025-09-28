@@ -1,6 +1,6 @@
 FROM golang:1.25
 
-WORKDIR /app
+WORKDIR /tunneld
 
 COPY go.mod go.sum ./
 
