@@ -9,10 +9,12 @@ type HttpServerConfig struct {
 }
 
 func NewHttpServerConfig() *HttpServerConfig {
+	var paths []string
+	viper.UnmarshalKey("http.paths", &paths)
 	return &HttpServerConfig{
 		Host:  viper.GetString("http.host"),
 		Port:  viper.GetString("http.port"),
-		Paths: viper.GetStringSlice("http.paths"),
+		Paths: paths,
 	}
 }
 
