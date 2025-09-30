@@ -11,5 +11,5 @@ COPY pkg ./pkg
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /tunneld ./cmd/tunneld/tunneld.go
 
-CMD ["/tunneld"]
+CMD ["/tunneld/tunneld"]
 
