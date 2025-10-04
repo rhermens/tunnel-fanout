@@ -10,7 +10,8 @@ import (
 type TunnelClientConfig struct {
 	Registry    string
 	TargetProto string
-	TargetPort  int
+	TargetHost  string
+	TargetPort  string
 	SshConfig   *ssh.ClientConfig
 }
 
@@ -20,7 +21,7 @@ func NewTunnelClientConfig() *TunnelClientConfig {
 		panic(err)
 	}
 
-	pk, err := os.ReadFile(viper.GetString("private_key_path"))
+	pk, err := os.ReadFile(viper.GetString("ssh_key_path"))
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +39,8 @@ func NewTunnelClientConfig() *TunnelClientConfig {
 	}
 
 	return &TunnelClientConfig{
-		TargetPort:  viper.GetInt("port"),
+		TargetHost:  viper.GetString("host"),
+		TargetPort:  viper.GetString("port"),
 		TargetProto: "http",
 		Registry:    viper.GetString("registry"),
 		SshConfig:   clientConfig,

@@ -3,10 +3,9 @@ package client
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
-	"net/url"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -45,7 +44,7 @@ func (tc *TunnelClient) Close() {
 }
 
 func (tc *TunnelClient) ForwardRequests() {
-	slog.Info("Forwarding requests", "port", tc.Config.TargetPort, "proto", tc.Config.TargetProto)
+	slog.Info("Forwarding requests", "port", tc.Config.TargetPort, "proto", tc.Config.TargetProto, "host", tc.Config.TargetHost)
 	cl := http.Client{}
 	defer tc.Close()
 
@@ -58,8 +57,8 @@ func (tc *TunnelClient) ForwardRequests() {
 		}
 		r.Reply(true, nil)
 
-		u, err := url.Parse(fmt.Sprintf("%s://localhost:%d%s", tc.Config.TargetProto, tc.Config.TargetPort, hReq.URL.Path))
-		hReq.URL = u
+		hReq.URL.Scheme = tc.Config.TargetProto
+		hReq.URL.Host = net.JoinHostPort(tc.Config.TargetHost, tc.Config.TargetPort)
 		hReq.RequestURI = ""
 
 		resp, err := cl.Do(hReq)
@@ -68,7 +67,7 @@ func (tc *TunnelClient) ForwardRequests() {
 			continue
 		}
 		defer resp.Body.Close()
-		slog.Info("Request forwarded", "path", hReq.URL.Path, "status", resp.StatusCode)
+		slog.Info("Request forwarded", "url", hReq.URL, "status", resp.StatusCode)
 
 		if r.WantReply {
 			var buff bytes.Buffer
