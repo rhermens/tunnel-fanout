@@ -46,16 +46,24 @@ func newSshConfig() *SshConfig {
 		},
 	}
 
-	pkBytes, err := os.ReadFile(config.HostKeyPath)
-	if err != nil {
-		slog.Error("Failed to load host key", "error", err, "path", config.HostKeyPath)
-		panic(err)
+	var err error
+	var pkBytes []byte
+	if pkBytes, err = os.ReadFile(config.HostKeyPath); os.IsNotExist(err) {
+		pkBytes, err = GenerateHostKey(config.HostKeyPath)
+		err = WriteHostKey(config.HostKeyPath, pkBytes)
+
+		if err != nil {
+			slog.Error("Failed to generate host key", "error", err)
+			panic(err)
+		}
 	}
+
 	pk, err := ssh.ParsePrivateKey(pkBytes)
 	if err != nil {
 		slog.Error("Failed to parse host key", "error", err)
 		panic(err)
 	}
+
 	config.SshConfig.AddHostKey(pk)
 	return config
 }
