@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-setup
     permissions:
+      contents: read
       packages: write
     steps:
       - name: Build and push tunneld
@@ -34,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-setup
     permissions:
+      contents: read
       packages: write
     steps:
       - name: Build and push client
