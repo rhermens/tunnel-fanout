@@ -4,11 +4,13 @@ on:
   release:
     types: [released]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   docker-setup:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -21,9 +23,6 @@ jobs:
   push-tunneld:
     runs-on: ubuntu-latest
     needs: docker-setup
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Build and push tunneld
         uses: docker/build-push-action@v6
@@ -34,9 +33,6 @@ jobs:
   push-tunnel-client:
     runs-on: ubuntu-latest
     needs: docker-setup
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Build and push client
         uses: docker/build-push-action@v6
