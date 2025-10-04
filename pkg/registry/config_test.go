@@ -2,10 +2,10 @@ package registry
 
 import (
 	"net"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/rhermens/tunnel-fanout/pkg/registry/keystore"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 )
@@ -30,75 +30,12 @@ func (m *mockSshConnMeta) SessionID() []byte     { return []byte("sessionid") }
 func (m *mockSshConnMeta) ClientVersion() []byte { return []byte("clientversion") }
 func (m *mockSshConnMeta) ServerVersion() []byte { return []byte("serverversion") }
 
-func TestParseAuthorizedKeysCommaSeperated(t *testing.T) {
-	setup()
-
-	type testCase struct {
-		name            string
-		keys            []string
-		expected        map[string]bool
-		expectedMissing map[string]bool
-	}
-
-	testCases := []testCase{
-		{
-			name: "both keys",
-			keys: []string{key1, key2},
-			expected: map[string]bool{
-				string(key1P.Marshal()): true,
-				string(key2P.Marshal()): true,
-			},
-			expectedMissing: map[string]bool{},
-		},
-		{
-			name: "single key",
-			keys: []string{key1},
-			expected: map[string]bool{
-				string(key1P.Marshal()): true,
-			},
-			expectedMissing: map[string]bool{
-				string(key2P.Marshal()): true,
-			},
-		},
-		{
-			name:     "empty keys",
-			keys:     []string{},
-			expected: map[string]bool{},
-			expectedMissing: map[string]bool{
-				string(key1P.Marshal()): true,
-				string(key2P.Marshal()): true,
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			os.Setenv("TUNNELD_REGISTRY_SSH_AUTHORIZED_KEYS", strings.Join(tc.keys, ","))
-			actual := parseAuthorizedKeys()
-			if len(actual) != len(tc.expected) {
-				t.Fatalf("Expected %d authorized keys, got %d", len(tc.expected), len(actual))
-			}
-
-			for key := range tc.expected {
-				if !actual[key] {
-					t.Errorf("Expected key %s to be present", key)
-				}
-			}
-			for key := range tc.expectedMissing {
-				if actual[key] {
-					t.Errorf("Expected key %s not to be present", key)
-				}
-			}
-		})
-	}
-}
-
 func TestPublicKeyCallback(t *testing.T) {
 	setup()
 
 	type testCase struct {
 		name                string
-		authorizedKeys      map[string]bool
+		authorizedKeys      keystore.Keystore
 		keyToTest           ssh.PublicKey
 		expectedPermissions bool
 		expectedError       bool
@@ -107,7 +44,7 @@ func TestPublicKeyCallback(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "key is authorized",
-			authorizedKeys: map[string]bool{
+			authorizedKeys: keystore.Keystore{
 				string(key1P.Marshal()): true,
 			},
 			keyToTest:           key1P,
@@ -116,7 +53,7 @@ func TestPublicKeyCallback(t *testing.T) {
 		},
 		{
 			name: "key is missing",
-			authorizedKeys: map[string]bool{
+			authorizedKeys: keystore.Keystore{
 				string(key2P.Marshal()): true,
 			},
 			keyToTest:           key1P,
@@ -125,7 +62,7 @@ func TestPublicKeyCallback(t *testing.T) {
 		},
 		{
 			name:                "authorized keys is empty",
-			authorizedKeys:      map[string]bool{},
+			authorizedKeys:      keystore.Keystore{},
 			keyToTest:           key1P,
 			expectedPermissions: false,
 			expectedError:       true,
