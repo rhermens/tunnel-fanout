@@ -12,7 +12,6 @@ var key1P, _, _, _, _ = ssh.ParseAuthorizedKey([]byte(key1))
 var key2P, _, _, _, _ = ssh.ParseAuthorizedKey([]byte(key2))
 
 func TestParseAuthorizedKeysCommaSeperated(t *testing.T) {
-
 	type testCase struct {
 		name            string
 		keys            []string
@@ -66,6 +65,63 @@ func TestParseAuthorizedKeysCommaSeperated(t *testing.T) {
 			for key := range tc.expectedMissing {
 				if actual[key] {
 					t.Errorf("Expected key %s not to be present", key)
+				}
+			}
+		})
+	}
+}
+
+func TestMergeKeystores(t *testing.T) {
+	type testCase struct {
+		name      string
+		keystores []Keystore
+		expected  map[string]bool
+	}
+
+	testCases := []testCase{
+		{
+			name: "both keys from different keystores",
+			keystores: []Keystore{
+				NewFromStrings([]string{key1}),
+				NewFromStrings([]string{key2}),
+			},
+			expected: map[string]bool{
+				string(key1P.Marshal()): true,
+				string(key2P.Marshal()): true,
+			},
+		},
+		{
+			name: "overlapping keys",
+			keystores: []Keystore{
+				NewFromStrings([]string{key1}),
+				NewFromStrings([]string{key1}),
+			},
+			expected: map[string]bool{
+				string(key1P.Marshal()): true,
+			},
+		},
+		{
+			name: "nil keystore",
+			keystores: []Keystore{
+				NewFromStrings([]string{key1}),
+				nil,
+			},
+			expected: map[string]bool{
+				string(key1P.Marshal()): true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := MergeKeystores(tc.keystores...)
+			if len(actual) != len(tc.expected) {
+				t.Fatalf("Expected %d authorized keys, got %d", len(tc.expected), len(actual))
+			}
+
+			for key := range tc.expected {
+				if !actual[key] {
+					t.Errorf("Expected key %s to be present", key)
 				}
 			}
 		})

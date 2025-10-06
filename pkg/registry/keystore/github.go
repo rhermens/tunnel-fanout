@@ -25,13 +25,15 @@ func NewFromGithubOrganization() Keystore {
 	client := github.NewClient(nil).WithAuthToken(config.Token)
 	members, _, err := client.Organizations.ListMembers(context.Background(), config.Organization, nil)
 	if err != nil {
-		panic(err)
+		slog.Error("Failed to list organization members", "error", err)
+		return nil
 	}
 
 	for _, member := range members {
 		keys, _, err := client.Users.ListKeys(context.Background(), member.GetLogin(), nil)
 		if err != nil {
-			panic(err)
+			slog.Error("Failed to list user keys", "user", member.GetLogin(), "error", err)
+			continue
 		}
 
 		for _, key := range keys {

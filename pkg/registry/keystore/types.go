@@ -12,10 +12,6 @@ type Keystore = map[string]bool
 func NewFromStrings(keys []string) Keystore {
 	keystore := make(Keystore)
 	for _, key := range keys {
-		if key == "" {
-			continue
-		}
-
 		parsedKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
 			slog.Warn("Failed to parse authorized key", "error", err)
@@ -29,7 +25,7 @@ func NewFromStrings(keys []string) Keystore {
 	return keystore
 }
 
-func MergeKeystore(keystores ...Keystore) Keystore {
+func MergeKeystores(keystores ...Keystore) Keystore {
 	merged := make(Keystore)
 	for _, ks := range keystores {
 		maps.Copy(merged, ks)

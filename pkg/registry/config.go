@@ -26,7 +26,7 @@ func SetConfigDefaults() {
 	viper.SetDefault("registry.host", "0.0.0.0")
 	viper.SetDefault("registry.port", "7891")
 	viper.SetDefault("registry.ssh.host_key_path", ".ssh/id_ed25519")
-	viper.SetDefault("registry.ssh.authorized_keys", []string{""})
+	viper.SetDefault("registry.ssh.authorized_keys", []string{})
 	viper.SetDefault("registry.ssh.github.organization", nil)
 	viper.SetDefault("registry.ssh.github.token", nil)
 }
@@ -42,7 +42,7 @@ func NewRegistryConfig() *RegistryConfig {
 func newSshConfig() *SshConfig {
 	authorizedKeys := keystore.NewFromYaml()
 	if viper.GetString("registry.ssh.github.organization") != "" {
-		authorizedKeys = keystore.MergeKeystore(authorizedKeys, keystore.NewFromGithubOrganization())
+		authorizedKeys = keystore.MergeKeystores(authorizedKeys, keystore.NewFromGithubOrganization())
 	}
 
 	config := &SshConfig{
