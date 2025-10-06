@@ -41,7 +41,7 @@ func NewRegistryConfig() *RegistryConfig {
 
 func newSshConfig() *SshConfig {
 	authorizedKeys := keystore.NewFromYaml()
-	if viper.GetString("registry.ssh.github.organization") != "" {
+	if viper.IsSet("registry.ssh.github.organization") && viper.IsSet("registry.ssh.github.token") {
 		authorizedKeys = keystore.MergeKeystores(authorizedKeys, keystore.NewFromGithubOrganization())
 	}
 
