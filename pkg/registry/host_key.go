@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/crypto/ssh"
 )
 
 func GenerateHostKey(p string) ([]byte, error) {
@@ -38,4 +40,26 @@ func WriteHostKey(p string, privateKeyPemBytes []byte) error {
 	}
 
 	return os.WriteFile(p, privateKeyPemBytes, 0600)
+}
+
+func EnsureHostKey(p string) ssh.Signer {
+	var err error
+	var pkBytes []byte
+	if pkBytes, err = os.ReadFile(p); os.IsNotExist(err) {
+		pkBytes, err = GenerateHostKey(p)
+		err = WriteHostKey(p, pkBytes)
+
+		if err != nil {
+			slog.Error("Failed to generate host key", "error", err)
+			panic(err)
+		}
+	}
+
+	pk, err := ssh.ParsePrivateKey(pkBytes)
+	if err != nil {
+		slog.Error("Failed to parse host key", "error", err)
+		panic(err)
+	}
+
+	return pk
 }

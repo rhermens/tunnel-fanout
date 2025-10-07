@@ -3,7 +3,6 @@ package registry
 import (
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/rhermens/tunnel-fanout/pkg/registry/keystore"
 	"github.com/spf13/viper"
@@ -53,25 +52,7 @@ func newSshConfig() *SshConfig {
 		},
 	}
 
-	var err error
-	var pkBytes []byte
-	if pkBytes, err = os.ReadFile(config.HostKeyPath); os.IsNotExist(err) {
-		pkBytes, err = GenerateHostKey(config.HostKeyPath)
-		err = WriteHostKey(config.HostKeyPath, pkBytes)
-
-		if err != nil {
-			slog.Error("Failed to generate host key", "error", err)
-			panic(err)
-		}
-	}
-
-	pk, err := ssh.ParsePrivateKey(pkBytes)
-	if err != nil {
-		slog.Error("Failed to parse host key", "error", err)
-		panic(err)
-	}
-
-	config.SshConfig.AddHostKey(pk)
+	config.SshConfig.AddHostKey(EnsureHostKey(config.HostKeyPath))
 	return config
 }
 
