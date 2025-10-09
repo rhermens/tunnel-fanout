@@ -27,19 +27,19 @@ func forwardHandler(w http.ResponseWriter, r *http.Request) {
 	r.Write(&buffer)
 
 	for _, tunnelClient := range registry.Upstreams {
-		slog.Info("Forwarding request to upstream", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr(), "channels", len(tunnelClient.OpenChannels))
+		go func() {
+			slog.Info("Forwarding request to upstream", "remote", tunnelClient.SSHConn.RemoteAddr(), "local", tunnelClient.SSHConn.LocalAddr(), "channels", len(tunnelClient.OpenChannels))
+			for i, openConn := range tunnelClient.OpenChannels {
+				slog.Info("Writing to channel", "channel", i)
+				reply, err := openConn.Channel.SendRequest("forward", true, buffer.Bytes())
+				if err != nil {
+					slog.Error("Failed to send request", "error", err)
+					registry.RemoveUpstream(tunnelClient, err)
+				}
 
-		for i, openConn := range tunnelClient.OpenChannels {
-			slog.Info("Writing to channel", "channel", i)
-			reply, err := openConn.Channel.SendRequest("forward", true, buffer.Bytes())
-			if err != nil {
-				slog.Error("Failed to send request", "error", err)
-				registry.RemoveUpstream(tunnelClient, err)
-				continue
+				slog.Info("Request sent", "reply", reply)
 			}
-
-			slog.Info("Request sent", "reply", reply)
-		}
+		}()
 	}
 
 	w.Write([]byte("OK"))
