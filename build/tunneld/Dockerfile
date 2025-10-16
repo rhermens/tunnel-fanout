@@ -1,4 +1,4 @@
-FROM golang:1.25
+FROM golang:1.25 AS build
 
 WORKDIR /tunneld
 
@@ -11,5 +11,10 @@ COPY pkg ./pkg
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /tunneld ./cmd/tunneld/tunneld.go
 
-CMD ["/tunneld/tunneld"]
+FROM scratch AS release
 
+WORKDIR /tunneld
+
+COPY --from=build /tunneld/tunneld /tunneld/tunneld
+
+ENTRYPOINT ["/tunneld/tunneld"]
