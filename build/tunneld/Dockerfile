@@ -19,5 +19,6 @@ WORKDIR /tunneld
 COPY --from=build /tunneld/tunneld /tunneld/tunneld
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 ENTRYPOINT ["/tunneld/tunneld"]
