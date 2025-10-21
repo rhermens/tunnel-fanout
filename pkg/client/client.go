@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/rhermens/tunnel-fanout/pkg/registry"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -30,7 +31,7 @@ func (tc *TunnelClient) openRegistryConnection() error {
 		return err
 	}
 
-	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel("upstream", []byte{})
+	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel(string(registry.Client), []byte{})
 	if err != nil {
 		return err
 	}

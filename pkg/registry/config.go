@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"log/slog"
+	"net"
 
 	"github.com/rhermens/tunnel-fanout/pkg/registry/keystore"
 	"github.com/spf13/viper"
@@ -48,7 +49,22 @@ func newSshConfig() *SshConfig {
 		AuthorizedKeys: authorizedKeys,
 		HostKeyPath:    viper.GetString("registry.ssh.host_key_path"),
 		SshConfig: &ssh.ServerConfig{
+			NoClientAuth:      true,
 			PublicKeyCallback: newPublicKeyCallback(authorizedKeys),
+			NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
+				ip := conn.RemoteAddr().(*net.TCPAddr).IP
+				if ip.IsLoopback() || ip.IsPrivate() {
+					slog.Info("Allowing connection without authentication", "user", conn.User, "remote", conn.RemoteAddr())
+					return &ssh.Permissions{
+						Extensions: map[string]string{
+							"no-auth": "true",
+						},
+					}, nil
+				}
+
+				slog.Warn("Denied connection without authentication", "user", conn.User(), "remote", conn.RemoteAddr().String(), "ip", ip.String())
+				return nil, fmt.Errorf("authentication required for %q", conn.User())
+			},
 		},
 	}
 

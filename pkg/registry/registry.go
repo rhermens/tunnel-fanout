@@ -5,15 +5,25 @@ import (
 	"net"
 )
 
-var Upstreams map[string]*TunnelUpstream = make(map[string]*TunnelUpstream)
+type Registry struct {
+	Config      *RegistryConfig
+	Connections map[string]*Connection
+}
 
-func Listen(config *RegistryConfig) error {
-	listener, err := net.Listen("tcp", net.JoinHostPort(config.Host, config.Port))
-	if err != nil {
-		slog.Error("Failed to start SSH server", "error", err)
-		return err
+func NewRegistry(config *RegistryConfig) Registry {
+	return Registry{
+		Config:      config,
+		Connections: make(map[string]*Connection),
 	}
-	slog.Info("SSH server listening on", "host", config.Host, "port", config.Port)
+}
+
+func (r *Registry) Listen() (*Registry, error) {
+	listener, err := net.Listen("tcp", net.JoinHostPort(r.Config.Host, r.Config.Port))
+	if err != nil {
+		slog.Error("Failed to start registry server", "error", err)
+		return nil, err
+	}
+	slog.Info("Registry server listening on", "host", r.Config.Host, "port", r.Config.Port)
 	defer listener.Close()
 
 	for {
@@ -24,24 +34,31 @@ func Listen(config *RegistryConfig) error {
 			continue
 		}
 
-		tu, err := NewUpstreamFromTCP(nConn, config)
+		err = r.AddConnection(nConn)
 		if err != nil {
-			slog.Error("Failed to create tunnel upstream", "error", err)
+			slog.Error("Failed to create open connection", "error", err)
 			continue
 		}
-
-		slog.Info("Accepted connection", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr())
-		Upstreams[tu.RemoteAddr().String()] = tu
-
-		tu.wg.Go(func() {
-			err := tu.Wait()
-			RemoveUpstream(tu, err)
-		})
 	}
 }
 
-func RemoveUpstream(tu *TunnelUpstream, reason error) {
-	tu.Close()
-	slog.Info("Connection closed", "remote", tu.SSHConn.RemoteAddr(), "local", tu.SSHConn.LocalAddr(), "reason", reason)
-	delete(Upstreams, tu.RemoteAddr().String())
+func (r *Registry) CloseConnection(c *Connection, reason error) {
+	c.Close()
+	slog.Info("Connection closed", "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr(), "reason", reason)
+	delete(r.Connections, c.RemoteAddr().String())
+}
+
+func (r *Registry) FanoutBuffer(data []byte) {
+	for _, connection := range r.Connections {
+		if connection.Type != Client {
+			continue
+		}
+
+		go func() {
+			if err := connection.ForwardBuffer(data); err != nil {
+				slog.Error("Failed to send request", "error", err)
+				r.CloseConnection(connection, err)
+			}
+		}()
+	}
 }
