@@ -54,7 +54,7 @@ func newSshConfig() *SshConfig {
 			NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
 				ip := conn.RemoteAddr().(*net.TCPAddr).IP
 				if ip.IsLoopback() || ip.IsPrivate() {
-					slog.Info("Allowing connection without authentication", "user", conn.User, "remote", conn.RemoteAddr())
+					slog.Info("Allowing connection without authentication", "user", conn.User(), "remote", conn.RemoteAddr())
 					return &ssh.Permissions{
 						Extensions: map[string]string{
 							"no-auth": "true",

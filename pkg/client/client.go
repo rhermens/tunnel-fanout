@@ -8,14 +8,11 @@ import (
 	"net/http"
 
 	"github.com/rhermens/tunnel-fanout/pkg/registry"
-	"golang.org/x/crypto/ssh"
 )
 
 type TunnelClient struct {
-	Config         *TunnelClientConfig
-	RegistryClient *ssh.Client
-	Channel        ssh.Channel
-	Requests       <-chan *ssh.Request
+	Config     *TunnelClientConfig
+	Connection *registry.SshRegistryConnection
 }
 
 func NewTunnelClient(config *TunnelClientConfig) *TunnelClient {
@@ -26,22 +23,15 @@ func NewTunnelClient(config *TunnelClientConfig) *TunnelClient {
 
 func (tc *TunnelClient) openRegistryConnection() error {
 	var err error
-	tc.RegistryClient, err = ssh.Dial("tcp", tc.Config.Registry, tc.Config.SshConfig)
+	tc.Connection, err = registry.NewSshRegistryConnection(&tc.Config.RegistryConfig, registry.Client)
 	if err != nil {
 		return err
 	}
-
-	tc.Channel, tc.Requests, err = tc.RegistryClient.OpenChannel(string(registry.Client), []byte{})
-	if err != nil {
-		return err
-	}
-
-	slog.Info("Opened channel to registry", "remote", tc.Config.Registry)
 	return nil
 }
 
 func (tc *TunnelClient) Close() {
-	tc.RegistryClient.Close()
+	tc.Connection.Close()
 }
 
 func (tc *TunnelClient) ForwardRequests() {
@@ -49,7 +39,7 @@ func (tc *TunnelClient) ForwardRequests() {
 	cl := http.Client{}
 	defer tc.Close()
 
-	for r := range tc.Requests {
+	for r := range tc.Connection.Requests {
 		reader := bytes.NewReader(r.Payload)
 		hReq, err := http.ReadRequest(bufio.NewReader(reader))
 		if err != nil {
@@ -74,7 +64,7 @@ func (tc *TunnelClient) ForwardRequests() {
 			var buff bytes.Buffer
 			resp.Write(&buff)
 
-			tc.Channel.SendRequest("response", false, buff.Bytes())
+			tc.Connection.Channel.SendRequest("response", false, buff.Bytes())
 
 			slog.Info("Response written back to proxy", "status", resp.StatusCode)
 		}

@@ -82,7 +82,7 @@ func NewProxyCmd() *cobra.Command {
 		Use:   "proxy",
 		Short: "Start proxy server",
 		Run: func(cmd *cobra.Command, args []string) {
-			proxy := proxy.NewHttpProxy(proxy.NewHttpServerConfig(), proxy.NewRegistryConnectionConfig())
+			proxy := proxy.NewHttpProxy(proxy.NewHttpServerConfig())
 			err := proxy.Listen()
 			if err != nil {
 				slog.Error("Failed to start http server", "error", err)

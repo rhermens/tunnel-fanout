@@ -7,13 +7,19 @@ import (
 	"net/http"
 
 	"github.com/rhermens/tunnel-fanout/pkg/registry"
-	"golang.org/x/crypto/ssh"
 )
 
-type SshRegistryConnection struct {
-	Client   *ssh.Client
-	Channel  ssh.Channel
-	Requests <-chan *ssh.Request
+type RegistryConnection interface {
+	Forward(data []byte) (int, error)
+}
+
+type SshRegistry struct {
+	Connection *registry.SshRegistryConnection
+}
+
+func (c *SshRegistry) Forward(data []byte) (int, error) {
+	_, err := c.Connection.Channel.SendRequest(string(registry.Forward), false, data)
+	return len(data), err
 }
 
 type InMemoryRegistryConnection struct {
@@ -23,15 +29,6 @@ type InMemoryRegistryConnection struct {
 func (c InMemoryRegistryConnection) Forward(data []byte) (int, error) {
 	c.Registry.FanoutBuffer(data)
 	return len(data), nil
-}
-
-func (c SshRegistryConnection) Forward(data []byte) (int, error) {
-	_, err := c.Channel.SendRequest(string(registry.Forward), false, data)
-	return len(data), err
-}
-
-type RegistryConnection interface {
-	Forward(data []byte) (int, error)
 }
 
 type HttpProxy struct {
@@ -52,8 +49,8 @@ func NewStandaloneHttpProxy(config *HttpServerConfig, registry *registry.Registr
 	return proxy
 }
 
-func NewHttpProxy(config *HttpServerConfig, sshConfig *RegistryConnectionConfig) HttpProxy {
-	connection, err := NewSshRegistryConnection(sshConfig)
+func NewHttpProxy(config *HttpServerConfig) HttpProxy {
+	connection, err := NewSshRegistry(&config.RegistryConfig)
 	if err != nil {
 		slog.Error("Failed to create SSH registry connection", "error", err)
 		panic(err)
@@ -91,20 +88,15 @@ func (p *HttpProxy) ForwardHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func NewSshRegistryConnection(config *RegistryConnectionConfig) (*SshRegistryConnection, error) {
+func NewSshRegistry(config *registry.RegistryClientConfig) (*SshRegistry, error) {
 	var err error
-	connection := &SshRegistryConnection{}
+	conn, err := registry.NewSshRegistryConnection(config, registry.Proxy)
 
-	connection.Client, err = ssh.Dial("tcp", net.JoinHostPort(config.Host, config.Port), &config.SshConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	connection.Channel, connection.Requests, err = connection.Client.OpenChannel(string(registry.Proxy), []byte{})
-	if err != nil {
-		return nil, err
-	}
-
-	slog.Info("Opened channel to registry", "remote", config.Host)
-	return connection, nil
+	return &SshRegistry{
+		Connection: conn,
+	}, nil
 }
