@@ -34,7 +34,7 @@ func NewStandaloneCmd() *cobra.Command {
 		Short: "Start standalone tunneld server",
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
-			registry := registry.NewRegistry(registry.NewRegistryConfig())
+			registry := registry.NewRegistry(registry.NewRegistryServerConfig())
 			proxy := proxy.NewStandaloneHttpProxy(proxy.NewHttpServerConfig(), &registry)
 
 			wg.Go(func() {
@@ -65,7 +65,7 @@ func NewRegistryCmd() *cobra.Command {
 		Use:   "registry",
 		Short: "Start registry server",
 		Run: func(cmd *cobra.Command, args []string) {
-			registry := registry.NewRegistry(registry.NewRegistryConfig())
+			registry := registry.NewRegistry(registry.NewRegistryServerConfig())
 			_, err := registry.Listen()
 			if err != nil {
 				slog.Error("Failed to start registry server", "error", err)

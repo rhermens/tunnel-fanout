@@ -11,12 +11,13 @@ import (
 )
 
 type SshConfig struct {
-	AuthorizedKeys keystore.Keystore
-	HostKeyPath    string
-	SshConfig      *ssh.ServerConfig
+	AllowInternalUnauthenticated bool
+	AuthorizedKeys               keystore.Keystore
+	HostKeyPath                  string
+	SshConfig                    *ssh.ServerConfig
 }
 
-type RegistryConfig struct {
+type RegistryServerConfig struct {
 	Host string
 	Port string
 	Ssh  *SshConfig
@@ -27,12 +28,13 @@ func SetConfigDefaults() {
 	viper.SetDefault("registry.port", "7891")
 	viper.SetDefault("registry.ssh.host_key_path", ".ssh/id_ed25519")
 	viper.SetDefault("registry.ssh.authorized_keys", []string{})
+	viper.SetDefault("registry.ssh.allow_internal_unauthenticated", false)
 	viper.SetDefault("registry.ssh.github.organization", nil)
 	viper.SetDefault("registry.ssh.github.token", nil)
 }
 
-func NewRegistryConfig() *RegistryConfig {
-	return &RegistryConfig{
+func NewRegistryServerConfig() *RegistryServerConfig {
+	return &RegistryServerConfig{
 		Host: viper.GetString("registry.host"),
 		Port: viper.GetString("registry.port"),
 		Ssh:  newSshConfig(),
@@ -46,10 +48,11 @@ func newSshConfig() *SshConfig {
 	}
 
 	config := &SshConfig{
-		AuthorizedKeys: authorizedKeys,
-		HostKeyPath:    viper.GetString("registry.ssh.host_key_path"),
+		AllowInternalUnauthenticated: viper.GetBool("registry.ssh.allow_internal_unauthenticated"),
+		AuthorizedKeys:               authorizedKeys,
+		HostKeyPath:                  viper.GetString("registry.ssh.host_key_path"),
 		SshConfig: &ssh.ServerConfig{
-			NoClientAuth:      true,
+			NoClientAuth:      viper.GetBool("registry.ssh.allow_internal_unauthenticated"),
 			PublicKeyCallback: newPublicKeyCallback(authorizedKeys),
 			NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
 				ip := conn.RemoteAddr().(*net.TCPAddr).IP

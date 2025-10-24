@@ -6,11 +6,11 @@ import (
 )
 
 type Registry struct {
-	Config      *RegistryConfig
+	Config      *RegistryServerConfig
 	Connections map[string]*Connection
 }
 
-func NewRegistry(config *RegistryConfig) Registry {
+func NewRegistry(config *RegistryServerConfig) Registry {
 	return Registry{
 		Config:      config,
 		Connections: make(map[string]*Connection),

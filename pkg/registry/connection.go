@@ -76,7 +76,7 @@ func (r *Registry) HandleProxyChannelRequests(reqs <-chan *ssh.Request) {
 	}
 }
 
-func NewConnectionFromTCP(conn net.Conn, rConfig *RegistryConfig) (*Connection, error) {
+func NewConnectionFromTCP(conn net.Conn, rConfig *RegistryServerConfig) (*Connection, error) {
 	var err error
 	c := &Connection{
 		Type: None,
