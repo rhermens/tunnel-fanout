@@ -1,14 +1,16 @@
 http:
-  host: 0.0.0.0
+  host: 0.0.0.0 # Http host for incoming connnections / webhooks
   port: 8000
-  paths:
-    - /{path...}
+  paths: # List of paths to receive requests on
+    - /{path...} # Any path
 
 registry:
-  host: 0.0.0.0
+  host: 0.0.0.0 # TCP host for incoming client connections
   port: 7891
   ssh:
+    github: # Github organization configuration
+      organization: org-name
+      token: ghp_token
     host_key_path: .ssh/id_ed25519
-    authorized_keys:
-      # - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEz6uCbKyV+dBXEM9nGmeEIpcvWJIitFe/Gq7yH5ucR0
-      # Example public key:
+    authorized_keys: # List of authorized public keys
+      # - ssh-ed25519 ***/***
