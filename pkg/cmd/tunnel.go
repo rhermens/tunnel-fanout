@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/rhermens/tunnel-fanout/pkg/client"
+	"github.com/rhermens/tunneld/pkg/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -6,15 +6,18 @@ Centralized tunneld server to receive webhooks and forward them to multiple tunn
 flowchart LR
         Web["Webhooks"]
         Tunneld
-        Dev1["Tunnel client 1"]
-        Dev2["Tunnel client 2"]
-        Dev3["Tunnel client 3"]
+        C1["Tunnel client 1"]
+        Dev1["dev server 1"]
+        C2["Tunnel client 2"]
+        Dev2["dev server 2"]
+        C3["Tunnel client 3"]
+        Dev3["dev server 3"]
 
         Web -- HTTP --> Tunneld
 
-        Tunneld -- SSH --> Dev1
-        Tunneld -- SSH --> Dev2
-        Tunneld -- SSH --> Dev3
+        Tunneld -- SSH --> C1 -- HTTP --> Dev1
+        Tunneld -- SSH --> C2 -- HTTP --> Dev2
+        Tunneld -- SSH --> C3 -- HTTP --> Dev3
 ```
 
 ## Tunnel client usage

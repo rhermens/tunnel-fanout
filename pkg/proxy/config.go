@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/rhermens/tunnel-fanout/pkg/registry"
+	"github.com/rhermens/tunneld/pkg/registry"
 	"github.com/spf13/viper"
 )
 

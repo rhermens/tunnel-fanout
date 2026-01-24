@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rhermens/tunnel-fanout/pkg/proxy"
-	"github.com/rhermens/tunnel-fanout/pkg/registry"
+	"github.com/rhermens/tunneld/pkg/proxy"
+	"github.com/rhermens/tunneld/pkg/registry"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

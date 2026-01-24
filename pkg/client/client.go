@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/rhermens/tunnel-fanout/pkg/registry"
+	"github.com/rhermens/tunneld/pkg/registry"
 )
 
 type TunnelClient struct {

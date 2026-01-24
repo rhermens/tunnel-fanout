@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/rhermens/tunnel-fanout/pkg/registry/keystore"
+	"github.com/rhermens/tunneld/pkg/registry/keystore"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 )

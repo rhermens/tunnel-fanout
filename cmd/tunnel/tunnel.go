@@ -1,6 +1,6 @@
 package main
 
-import "github.com/rhermens/tunnel-fanout/pkg/cmd"
+import "github.com/rhermens/tunneld/pkg/cmd"
 
 func main() {
 	cmd := cmd.NewTunnelCmd()

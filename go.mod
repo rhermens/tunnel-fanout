@@ -1,4 +1,4 @@
-module github.com/rhermens/tunnel-fanout
+module github.com/rhermens/tunneld
 
 go 1.25.0
 
