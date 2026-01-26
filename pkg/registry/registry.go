@@ -44,7 +44,7 @@ func (r *Registry) Listen() (*Registry, error) {
 
 func (r *Registry) CloseConnection(c *Connection, reason error) {
 	c.Close()
-	slog.Info("Connection closed", "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr(), "reason", reason)
+	slog.Info("Connection closed", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "reason", reason)
 	delete(r.Connections, c.RemoteAddr().String())
 }
 

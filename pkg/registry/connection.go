@@ -30,9 +30,16 @@ const (
 	Forward ProxyRequestType = "forward"
 )
 
+type SSHConn interface {
+	Wait() error
+	RemoteAddr() net.Addr
+	LocalAddr() net.Addr
+	Close() error
+}
+
 type Connection struct {
 	Type            ConnectionType
-	SSHConn         *ssh.ServerConn
+	SSHConn         SSHConn
 	ChannelRequests <-chan ssh.NewChannel
 	Reqs            <-chan *ssh.Request
 	OpenChannels    []*OpenChannel
@@ -45,7 +52,7 @@ func (r *Registry) AddConnection(nConn net.Conn) error {
 		return err
 	}
 
-	slog.Info("Accepted connection", "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr())
+	slog.Info("Accepted connection", "remote", c.RemoteAddr(), "local", c.LocalAddr())
 	r.Connections[c.RemoteAddr().String()] = c
 
 	c.wg.Go(func() {
@@ -101,6 +108,10 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.SSHConn.RemoteAddr()
 }
 
+func (c *Connection) LocalAddr() net.Addr {
+	return c.SSHConn.LocalAddr()
+}
+
 func (c *Connection) AcceptChannels() <-chan *OpenChannel {
 	wg := sync.WaitGroup{}
 	out := make(chan *OpenChannel)
@@ -109,7 +120,7 @@ func (c *Connection) AcceptChannels() <-chan *OpenChannel {
 		for channel := range c.ChannelRequests {
 			if channel.ChannelType() != string(Client) && channel.ChannelType() != string(Proxy) {
 				channel.Reject(ssh.UnknownChannelType, "unsupported channel type")
-				slog.Warn("Rejected channel request", "type", channel.ChannelType(), "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr())
+				slog.Warn("Rejected channel request", "type", channel.ChannelType(), "remote", c.RemoteAddr(), "local", c.LocalAddr())
 				continue
 			}
 
@@ -131,7 +142,7 @@ func (c *Connection) AcceptChannels() <-chan *OpenChannel {
 				openChannel.Type = Proxy
 			}
 
-			slog.Info("Accepted channel req", "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr(), "type", c.Type)
+			slog.Info("Accepted channel req", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "type", c.Type)
 			c.OpenChannels = append(c.OpenChannels, openChannel)
 
 			out <- openChannel
@@ -149,15 +160,16 @@ func (c *Connection) Close() {
 }
 
 func (c *Connection) ForwardBuffer(buf []byte) error {
-	slog.Info("Forwarding request to client", "remote", c.SSHConn.RemoteAddr(), "local", c.SSHConn.LocalAddr(), "channels", len(c.OpenChannels))
-	for i, openConn := range c.OpenChannels {
+	slog.Info("Forwarding request to client", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "channels", len(c.OpenChannels))
+	for i := len(c.OpenChannels) - 1; i >= 0; i-- {
+		ch := c.OpenChannels[i]
 		slog.Info("Writing to channel", "channel", i)
-		reply, err := openConn.Channel.SendRequest("consume", true, buf)
+		reply, err := ch.Channel.SendRequest("consume", true, buf)
 		slog.Info("Request sent", "reply", reply)
 
 		if err != nil {
-			openConn.Channel.Close()
-			c.OpenChannels = slices.Delete(c.OpenChannels, i, 1)
+			ch.Channel.Close()
+			c.OpenChannels = slices.Delete(c.OpenChannels, i, i+1)
 			slog.Error("Failed to send request, closing channel", "error", err)
 		}
 	}
