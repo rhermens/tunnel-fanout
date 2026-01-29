@@ -2,15 +2,19 @@ package keystore
 
 import (
 	"log/slog"
-	"maps"
 
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 )
 
-type Keystore = map[string]bool
+type Keystore interface {
+	ContainsKey(key ssh.PublicKey) bool
+}
 
-func NewFromStrings(keys []string) Keystore {
-	keystore := make(Keystore)
+type Keystores []Keystore
+
+func AuthorizedKeysFromStrings(keys []string) map[string]bool {
+	keystore := make(map[string]bool)
 	for _, key := range keys {
 		parsedKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
@@ -25,11 +29,23 @@ func NewFromStrings(keys []string) Keystore {
 	return keystore
 }
 
-func MergeKeystores(keystores ...Keystore) Keystore {
-	merged := make(Keystore)
-	for _, ks := range keystores {
-		maps.Copy(merged, ks)
+func LoadKeystores() Keystores {
+	keystores := Keystores{}
+	keystores = append(keystores, NewYamlKeystore())
+
+	if viper.IsSet("registry.ssh.github.organization") && viper.IsSet("registry.ssh.github.token") {
+		keystores = append(keystores, NewGitHubKeystore())
 	}
 
-	return merged
+	return keystores
+}
+
+func (ks Keystores) ContainsKey(key ssh.PublicKey) bool {
+	for _, k := range ks {
+		if k.ContainsKey(key) {
+			return true
+		}
+	}
+
+	return false
 }

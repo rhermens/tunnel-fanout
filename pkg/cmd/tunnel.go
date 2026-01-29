@@ -16,15 +16,7 @@ func NewTunnelCmd() *cobra.Command {
 		Use:   "tunnel",
 		Short: "Listen to a tunnel",
 		Run: func(cmd *cobra.Command, args []string) {
-			config := client.NewTunnelClientConfig()
-			l := client.NewTunnelClient(config)
-			err := l.Listen()
-			if err != nil {
-				slog.Error("Failed to listen to tunnel", "error", err)
-				os.Exit(1)
-			}
-
-			defer l.Close()
+			NewListenCmd().Run(cmd, args)
 		},
 	}
 
@@ -50,5 +42,24 @@ func NewTunnelCmd() *cobra.Command {
 		slog.Warn("No config file found", "error", err)
 	}
 
+	tunnelCmd.AddCommand(NewListenCmd())
 	return tunnelCmd
+}
+
+func NewListenCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "listen",
+		Short: "Listen to a tunnel",
+		Run: func(cmd *cobra.Command, args []string) {
+			config := client.NewTunnelClientConfig()
+			l := client.NewTunnelClient(config)
+			err := l.Listen()
+			if err != nil {
+				slog.Error("Failed to listen to tunnel", "error", err)
+				os.Exit(1)
+			}
+
+			defer l.Close()
+		},
+	}
 }

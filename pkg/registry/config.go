@@ -12,7 +12,7 @@ import (
 
 type SshConfig struct {
 	AllowInternalUnauthenticated bool
-	AuthorizedKeys               keystore.Keystore
+	Keystores                    keystore.Keystores
 	HostKeyPath                  string
 	SshConfig                    *ssh.ServerConfig
 }
@@ -42,18 +42,15 @@ func NewRegistryServerConfig() *RegistryServerConfig {
 }
 
 func newSshConfig() *SshConfig {
-	authorizedKeys := keystore.NewFromYaml()
-	if viper.IsSet("registry.ssh.github.organization") && viper.IsSet("registry.ssh.github.token") {
-		authorizedKeys = keystore.MergeKeystores(authorizedKeys, keystore.NewFromGithubOrganization())
-	}
+	keystores := keystore.LoadKeystores()
 
 	config := &SshConfig{
 		AllowInternalUnauthenticated: viper.GetBool("registry.ssh.allow_internal_unauthenticated"),
-		AuthorizedKeys:               authorizedKeys,
+		Keystores:                    keystores,
 		HostKeyPath:                  viper.GetString("registry.ssh.host_key_path"),
 		SshConfig: &ssh.ServerConfig{
 			NoClientAuth:      viper.GetBool("registry.ssh.allow_internal_unauthenticated"),
-			PublicKeyCallback: newPublicKeyCallback(authorizedKeys),
+			PublicKeyCallback: newPublicKeyCallback(keystores),
 			NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
 				ip := conn.RemoteAddr().(*net.TCPAddr).IP
 				if ip.IsLoopback() || ip.IsPrivate() {
@@ -75,9 +72,9 @@ func newSshConfig() *SshConfig {
 	return config
 }
 
-func newPublicKeyCallback(authorizedKeys map[string]bool) func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+func newPublicKeyCallback(ks keystore.Keystores) func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-		if authorizedKeys[string(key.Marshal())] {
+		if ks.ContainsKey(key) {
 			return &ssh.Permissions{
 				Extensions: map[string]string{
 					"pubkey-fp": ssh.FingerprintSHA256(key),
