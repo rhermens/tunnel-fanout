@@ -1,6 +1,8 @@
 package main
 
-import "github.com/rhermens/tunneld/pkg/cmd"
+import (
+	"github.com/rhermens/tunneld/pkg/cmd"
+)
 
 func main() {
 	cmd := cmd.NewTunneldCmd()

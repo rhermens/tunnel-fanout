@@ -95,6 +95,8 @@ func NewProxyCmd() *cobra.Command {
 }
 
 func tunneldConfig() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	viper.SetConfigName("tunneld")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("/etc/tunneld/")
