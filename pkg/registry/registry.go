@@ -3,17 +3,17 @@ package registry
 import (
 	"log/slog"
 	"net"
+	"sync"
 )
 
 type Registry struct {
 	Config      *RegistryServerConfig
-	Connections map[string]*Connection
+	Connections sync.Map
 }
 
 func NewRegistry(config *RegistryServerConfig) Registry {
 	return Registry{
-		Config:      config,
-		Connections: make(map[string]*Connection),
+		Config: config,
 	}
 }
 
@@ -45,13 +45,14 @@ func (r *Registry) Listen() (*Registry, error) {
 func (r *Registry) CloseConnection(c *Connection, reason error) {
 	c.Close()
 	slog.Info("Connection closed", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "reason", reason)
-	delete(r.Connections, c.RemoteAddr().String())
+	r.Connections.Delete(c.RemoteAddr().String())
 }
 
 func (r *Registry) FanoutBuffer(data []byte) {
-	for _, connection := range r.Connections {
+	r.Connections.Range(func(key, value any) bool {
+		connection := value.(*Connection)
 		if connection.Type != Client {
-			continue
+			return true
 		}
 
 		go func() {
@@ -60,5 +61,7 @@ func (r *Registry) FanoutBuffer(data []byte) {
 				r.CloseConnection(connection, err)
 			}
 		}()
-	}
+
+		return true
+	})
 }

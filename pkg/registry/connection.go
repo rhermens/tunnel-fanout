@@ -43,6 +43,7 @@ type Connection struct {
 	ChannelRequests <-chan ssh.NewChannel
 	Reqs            <-chan *ssh.Request
 	OpenChannels    []*OpenChannel
+	mu              sync.RWMutex
 	wg              sync.WaitGroup
 }
 
@@ -53,7 +54,7 @@ func (r *Registry) AddConnection(nConn net.Conn) error {
 	}
 
 	slog.Info("Accepted connection", "remote", c.RemoteAddr(), "local", c.LocalAddr())
-	r.Connections[c.RemoteAddr().String()] = c
+	r.Connections.Store(c.RemoteAddr().String(), c)
 
 	c.wg.Go(func() {
 		for openChan := range c.AcceptChannels() {
@@ -143,7 +144,9 @@ func (c *Connection) AcceptChannels() <-chan *OpenChannel {
 			}
 
 			slog.Info("Accepted channel req", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "type", c.Type)
+			c.mu.Lock()
 			c.OpenChannels = append(c.OpenChannels, openChannel)
+			c.mu.Unlock()
 
 			out <- openChannel
 		}
@@ -160,6 +163,9 @@ func (c *Connection) Close() {
 }
 
 func (c *Connection) ForwardBuffer(buf []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	slog.Info("Forwarding request to client", "remote", c.RemoteAddr(), "local", c.LocalAddr(), "channels", len(c.OpenChannels))
 	for i := len(c.OpenChannels) - 1; i >= 0; i-- {
 		ch := c.OpenChannels[i]
